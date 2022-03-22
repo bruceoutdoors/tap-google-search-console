@@ -37,7 +37,7 @@ def write_record(stream_name, record, time_extracted):
 
 def get_bookmark(state, stream, site, sub_type, start_date):
     default = {
-        'report_date': start_date,
+        'start_date': start_date,
     }
     if (state is None) or ('bookmarks' not in state):
         return default
