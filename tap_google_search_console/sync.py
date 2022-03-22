@@ -13,7 +13,7 @@ BASE_URL = 'https://www.googleapis.com/webmasters/v3'
 # However, delays up to 10 days have occurred in the past 6 months (late 2019, early 2020)
 # Reference: https://support.google.com/webmasters/answer/96568?hl=en
 ATTRIBUTION_DAYS = 14
-DATE_WINDOW_SIZE = 30
+DATE_WINDOW_SIZE = 2
 
 def write_schema(catalog, stream_name):
     stream = catalog.get_stream(stream_name)
@@ -285,6 +285,26 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
                            sub_type,
                            bookmark)
 
+    # Update the state with the max_bookmark_value for the stream, site, sub_type
+    # Reference: https://developers.google.com/webmaster-tools/search-console-api-original/v3/searchanalytics/query
+    # NOTE: Results are sorted by click count descending.
+    #       If two rows have the same click count, they are sorted in an arbitrary way.
+    #       Records are NOT sorted in DATE order.
+    if bookmark_field:
+        # Reached of the window
+        new_start_date_dttm = strptime_to_utc(max_bookmark_value) + timedelta(days=1)
+        new_end_date_dttm = new_start_date_dttm + timedelta(days=DATE_WINDOW_SIZE)
+        bookmark = {
+            'start_date': strftime(new_start_date_dttm),
+            'end_date': strftime(new_end_date_dttm),
+            'start_row': 0,
+        }
+        write_bookmark(state,
+                       stream_name,
+                       site,
+                       sub_type,
+                       bookmark)
+
     # Return total_records across all batches
     return total_records
 
@@ -444,24 +464,12 @@ def sync(client, config, catalog, state):
                         LOGGER.info('  Records Synced for Date Window: {}'.format(total_records))
 
                         # Set next date window
-                        start_dttm = end_dttm
+                        # Because the range is inclusive, start_dttm needs to add 1 day
+                        start_dttm = end_dttm + timedelta(days=1)
                         end_dttm = start_dttm + timedelta(days=DATE_WINDOW_SIZE)
                         if end_dttm > now_dttm:
                             end_dttm = now_dttm
                         # End date window loop
-
-                        if bookmark_field:
-                            # Update bookmark with new window:
-                            bookmark = {
-                                'start_date': strftime(start_dttm),
-                                'end_date': strftime(end_dttm),
-                                'start_row': 0,
-                            }
-                            write_bookmark(state,
-                                           stream_name,
-                                           site,
-                                           sub_type,
-                                           bookmark)
 
                     LOGGER.info('FINISHED Syncing Stream: {}, Site: {}, Type: {}'.format(
                         stream_name, site, sub_type))
