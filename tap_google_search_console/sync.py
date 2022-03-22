@@ -291,7 +291,7 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
     #       If two rows have the same click count, they are sorted in an arbitrary way.
     #       Records are NOT sorted in DATE order.
     if bookmark_field:
-        # Reached of the window
+        # Reached end of the window
         new_start_date_dttm = strptime_to_utc(max_bookmark_value) + timedelta(days=1)
         new_end_date_dttm = new_start_date_dttm + timedelta(days=DATE_WINDOW_SIZE)
         bookmark = {
