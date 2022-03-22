@@ -401,13 +401,7 @@ def sync(client, config, catalog, state):
                             site,
                             sub_type,
                             start_date)
-                        reports_dttm_str = bookmark['start_date']
-
-                        reports_dttm = strptime_to_utc(reports_dttm_str)
-                        if reports_dttm < attribution_start_dttm:
-                            start_dttm = reports_dttm
-                        else:
-                            start_dttm = attribution_start_dttm
+                        start_dttm = strptime_to_utc(bookmark['start_date'])
                         if 'end_date' in bookmark:
                             end_dttm = strptime_to_utc(bookmark['end_date'])
                         else:
