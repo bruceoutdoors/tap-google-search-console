@@ -138,6 +138,9 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
     last_datetime = bookmark['start_date']
     max_bookmark_value = last_datetime
 
+    if bookmark_field and 'endDate' in body_params:
+        bookmark['end_date'] = body_params['endDate'] + 'T00:00:00.000000Z'
+
     # Pagination: loop thru all pages of data
     # Pagination types: none, body, params
     # Each page has an offset (starting value) and a limit (batch size, number of records)
