@@ -450,6 +450,19 @@ def sync(client, config, catalog, state):
                             end_dttm = now_dttm
                         # End date window loop
 
+                        if bookmark_field:
+                            # Update bookmark with new window:
+                            bookmark = {
+                                'start_date': strftime(start_dttm),
+                                'end_date': strftime(end_dttm),
+                                'start_row': 0,
+                            }
+                            write_bookmark(state,
+                                           stream_name,
+                                           site,
+                                           sub_type,
+                                           bookmark)
+
                     LOGGER.info('FINISHED Syncing Stream: {}, Site: {}, Type: {}'.format(
                         stream_name, site, sub_type))
                     LOGGER.info('  Records Synced for Type: {}'.format(sub_type_total))
