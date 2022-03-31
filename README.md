@@ -1,5 +1,7 @@
 # tap-google-search-console
 
+**NOTE:** This is a variant of [`singer-io/tap-google-search-console`](https://github.com/singer-io/tap-google-search-console) that is designed to work with [Meltano](https://meltano.com/). The main difference is that it tracks the `offset` and `end_date` in the state in addition to the `start_date` _each time_ a batch of records is extracted, instead of saving the state only after a month window. This ensures that the extractor picks up from where it last left on failures.
+
 This is a [Singer](https://singer.io) tap that produces JSON-formatted data
 following the [Singer
 spec](https://github.com/singer-io/getting-started/blob/master/SPEC.md).
