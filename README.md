@@ -1,5 +1,7 @@
 # tap-google-search-console
 
+**NOTE:** This is a variant of [`singer-io/tap-google-search-console`](https://github.com/singer-io/tap-google-search-console) that is designed to work with [Meltano](https://meltano.com/). The main difference is that it tracks the `offset` and `end_date` in the state in addition to the `start_date` _each time_ a batch of records is extracted, instead of saving the state only after a month window. This ensures that the extractor picks up from where it last left on failures.
+
 This is a [Singer](https://singer.io) tap that produces JSON-formatted data
 following the [Singer
 spec](https://github.com/singer-io/getting-started/blob/master/SPEC.md).
@@ -151,109 +153,45 @@ The [**Google Search Console Setup & Authentication**](https://drive.google.com/
 
     ```json
     {
-      "currently_syncing": "sitemaps",
+      "currently_syncing": "performance_report_custom",
       "bookmarks": {
         "performance_report_custom": {
           "sc-domain:example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "https://example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "http://example.com": {
-            "web": "2020-04-13T00:00:00.000000Z"
+            "web": {
+              "start_date": "2022-01-01T00:00:00.000000Z",
+              "end_date": "2022-03-01T00:00:00.000000Z",
+              "start_row": 150000
+            },
+            "image": {
+              "start_date": "2022-01-01T00:00:00.000000Z",
+              "end_date": "2022-03-01T00:00:00.000000Z",
+              "start_row": 150000
+            },
+            "video": {
+              "start_date": "2022-01-01T00:00:00.000000Z",
+              "end_date": "2022-03-01T00:00:00.000000Z",
+              "start_row": 150000
+            }
           }
         },
         "performance_report_date": {
-          "http://www.example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-18T00:00:00.000000Z"
-          },
           "sc-domain:example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-18T00:00:00.000000Z"
+            "web": {
+              "start_date": "2022-01-01T00:00:00.000000Z",
+              "end_date": "2022-03-01T00:00:00.000000Z",
+              "start_row": 150000
+            },
+            "image": {
+              "start_date": "2022-01-01T00:00:00.000000Z",
+              "end_date": "2022-03-01T00:00:00.000000Z",
+              "start_row": 150000
+            },
+            "video": {
+              "start_date": "2022-01-01T00:00:00.000000Z",
+              "end_date": "2022-03-01T00:00:00.000000Z",
+              "start_row": 150000
+            }
           },
-          "https://www.example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-18T00:00:00.000000Z"
-          },
-          "https://example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-18T00:00:00.000000Z"
-          },
-          "http://example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-18T00:00:00.000000Z"
-          }
-        },
-        "performance_report_device": {
-          "sc-domain:example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "https://example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "http://example.com": {
-            "web": "2020-04-16T00:00:00.000000Z"
-          }
-        },
-        "performance_report_page": {
-          "sc-domain:example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "https://example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "http://example.com": {
-            "web": "2020-04-16T00:00:00.000000Z"
-          }
-        },
-        "performance_report_query": {
-          "sc-domain:example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "https://example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "http://example.com": {
-            "web": "2020-04-13T00:00:00.000000Z"
-          }
-        },
-        "performance_report_country": {
-          "sc-domain:example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "https://example.com": {
-            "web": "2020-04-18T00:00:00.000000Z",
-            "image": "2020-04-18T00:00:00.000000Z",
-            "video": "2020-04-08T00:00:00.000000Z"
-          },
-          "http://example.com": {
-            "web": "2020-04-16T00:00:00.000000Z"
-          }
         }
       }
     }
@@ -325,6 +263,14 @@ The [**Google Search Console Setup & Authentication**](https://drive.google.com/
     | performance_report_custom  | 17954   | 1       |
     +----------------------------+---------+---------+
     ```
+
+## Unit Tests
+
+```sh
+pip install nose
+nosetests tests/unittests
+```
+
 ---
 
 Copyright &copy; 2019 Stitch

@@ -35,7 +35,10 @@ def write_record(stream_name, record, time_extracted):
         raise err
 
 
-def get_bookmark(state, stream, site, sub_type, default):
+def get_bookmark(state, stream, site, sub_type, start_date):
+    default = {
+        'start_date': start_date,
+    }
     if (state is None) or ('bookmarks' not in state):
         return default
     return (
@@ -131,15 +134,19 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
     last_datetime = None
     max_bookmark_value = None
 
-    last_datetime = get_bookmark(state, stream_name, site, sub_type, start_date)
+    bookmark = get_bookmark(state, stream_name, site, sub_type, start_date)
+    last_datetime = bookmark['start_date']
     max_bookmark_value = last_datetime
+
+    if bookmark_field and 'endDate' in body_params:
+        bookmark['end_date'] = body_params['endDate'] + 'T00:00:00.000000Z'
 
     # Pagination: loop thru all pages of data
     # Pagination types: none, body, params
     # Each page has an offset (starting value) and a limit (batch size, number of records)
     # Increase the "offset" by the "limit" for each batch.
     # Continue until the "offset" exceeds the total_records.
-    offset = 0 # Starting offset value for each batch API call
+    offset = bookmark.get('start_row', 0) # Starting offset value for each batch API call
     limit = endpoint_config.get('row_limit', 1000) # Batch size; Number of records per API call
     total_records = 0
     batch_count = limit
@@ -204,7 +211,7 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
             LOGGER.info('xxx NO DATA xxx')
 
             if bookmark_field:
-                write_bookmark(state, stream_name, site, sub_type, max_bookmark_value)
+                write_bookmark(state, stream_name, site, sub_type, bookmark)
             return 0 # No data results
 
         # Transform data with transform_json from transform.py
@@ -231,7 +238,7 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
             LOGGER.info('xxx NO TRANSFORMED DATA xxx')
 
             if bookmark_field:
-                write_bookmark(state, stream_name, site, sub_type, max_bookmark_value)
+                write_bookmark(state, stream_name, site, sub_type, bookmark)
             return 0 # No data results
         for record in transformed_data:
             for key in id_fields:
@@ -267,18 +274,36 @@ def sync_endpoint(client, #pylint: disable=too-many-branches
         total_records = total_records + batch_count
         page = page + 1
 
+        if bookmark_field:
+            bookmark = {
+                **bookmark,
+                'start_row': offset,
+            }
+            write_bookmark(state,
+                           stream_name,
+                           site,
+                           sub_type,
+                           bookmark)
+
     # Update the state with the max_bookmark_value for the stream, site, sub_type
     # Reference: https://developers.google.com/webmaster-tools/search-console-api-original/v3/searchanalytics/query
     # NOTE: Results are sorted by click count descending.
     #       If two rows have the same click count, they are sorted in an arbitrary way.
     #       Records are NOT sorted in DATE order.
-    # THEREFOR: State is updated after ALL pages of data for stream, site, sub_type, date window
     if bookmark_field:
+        # Reached end of the window
+        new_start_date_dttm = strptime_to_utc(max_bookmark_value) + timedelta(days=1)
+        new_end_date_dttm = new_start_date_dttm + timedelta(days=DATE_WINDOW_SIZE)
+        bookmark = {
+            'start_date': strftime(new_start_date_dttm),
+            'end_date': strftime(new_end_date_dttm),
+            'start_row': 0,
+        }
         write_bookmark(state,
                        stream_name,
                        site,
                        sub_type,
-                       max_bookmark_value)
+                       bookmark)
 
     # Return total_records across all batches
     return total_records
@@ -370,19 +395,17 @@ def sync(client, config, catalog, state):
 
                     # Initialize date window
                     if stream_name.startswith('performance_report'):
-                        reports_dttm_str = get_bookmark(
+                        bookmark = get_bookmark(
                             state,
                             stream_name,
                             site,
                             sub_type,
                             start_date)
-
-                        reports_dttm = strptime_to_utc(reports_dttm_str)
-                        if reports_dttm < attribution_start_dttm:
-                            start_dttm = reports_dttm
+                        start_dttm = strptime_to_utc(bookmark['start_date'])
+                        if 'end_date' in bookmark:
+                            end_dttm = strptime_to_utc(bookmark['end_date'])
                         else:
-                            start_dttm = attribution_start_dttm
-                        end_dttm = start_dttm + timedelta(days=DATE_WINDOW_SIZE)
+                            end_dttm = start_dttm + timedelta(days=DATE_WINDOW_SIZE)
                         if end_dttm > now_dttm:
                             end_dttm = now_dttm
 
@@ -435,7 +458,8 @@ def sync(client, config, catalog, state):
                         LOGGER.info('  Records Synced for Date Window: {}'.format(total_records))
 
                         # Set next date window
-                        start_dttm = end_dttm
+                        # Because the range is inclusive, start_dttm needs to add 1 day
+                        start_dttm = end_dttm + timedelta(days=1)
                         end_dttm = start_dttm + timedelta(days=DATE_WINDOW_SIZE)
                         if end_dttm > now_dttm:
                             end_dttm = now_dttm
